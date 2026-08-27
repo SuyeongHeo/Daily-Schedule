@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Aurora Daily Planner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #F9F7F4;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .header h1 {
+      font-family: Georgia, serif;
+      font-size: 26px;
+      font-weight: 400;
+      color: #4A4240;
+      margin-bottom: 1rem;
+    }
+
+    .date-control {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #dateInput {
+      padding: 6px 10px;
+      border: 0.5px solid #D4B5C4;
+      border-radius: 4px;
+      font-size: 13px;
+      background: #FEFDFB;
+      color: #4A4240;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    #saveStatus {
+      margin-top: 0.5rem;
+      font-size: 11px;
+      color: #B8A9A5;
+      min-height: 20px;
+    }
+
+    .main-container {
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      overflow: hidden;
+      min-height: 1400px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .date-header {
+      text-align: center;
+      padding: 1.5rem;
+      border-bottom: 1px solid #E8DFD9;
+    }
+
+    .date-label {
+      font-size: 11px;
+      color: #B8A9A5;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 0.3rem;
+    }
+
+    .date-display {
+      font-size: 16px;
+      font-weight: 500;
+      color: #4A4240;
+    }
+
+    .day-display {
+      font-size: 12px;
+      color: #8B7B78;
+      margin-top: 0.3rem;
+    }
+
+    .checklist-section {
+      padding: 1.5rem;
+      border-bottom: 1px solid #E8DFD9;
+    }
+
+    .checklist-title {
+      font-size: 12px;
+      color: #4A4240;
+      font-weight: 500;
+      margin-bottom: 0.8rem;
+    }
+
+    .checklist-input-group {
+      display: flex;
+      gap: 0.4rem;
+      margin-bottom: 0.8rem;
+    }
+
+    #checklistInput {
+      flex: 1;
+      padding: 6px 8px;
+      border: 0.5px solid #E8DFD9;
+      border-radius: 3px;
+      font-size: 12px;
+      background: #FEFDFB;
+      color: #4A4240;
+      font-family: inherit;
+      outline: none;
+    }
+
+    #addChecklistBtn {
+      padding: 6px 12px;
+      background: #D4B5C4;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    #addChecklistBtn:hover {
+      background: #C4A5B4;
+    }
+
+    #checklistContainer {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .checklist-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 0.8rem;
+      background: #F5F0EB;
+      border-radius: 3px;
+      cursor: move;
+      user-select: none;
+    }
+
+    .checklist-item input[type="checkbox"] {
+      cursor: pointer;
+    }
+
+    .checklist-item span {
+      flex: 1;
+      font-size: 12px;
+      color: #4A4240;
+    }
+
+    .checklist-item button {
+      background: none;
+      border: none;
+      color: #B8A9A5;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0;
+    }
+
+    .timeline-headers {
+      display: flex;
+      gap: 0;
+      flex-shrink: 0;
+    }
+
+    .timeline-header-item {
+      flex: 1;
+      text-align: center;
+      padding: 1rem;
+      border-bottom: 1px solid #E8DFD9;
+    }
+
+    .timeline-header-item:first-child {
+      border-right: 1px solid #E8DFD9;
+    }
+
+    .timeline-content {
+      flex: 1;
+      display: flex;
+      gap: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .timeline-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .timeline-column:first-child {
+      border-right: 1px solid #E8DFD9;
+    }
+
+    .timeline-row {
+      display: flex;
+      border-bottom: 1px solid #E8DFD9;
+    }
+
+    .timeline-hour {
+      width: 35px;
+      min-width: 35px;
+      padding: 8px 4px;
+      text-align: center;
+      border-right: 1px solid #EBE2DD;
+      background: #FEFDFB;
+    }
+
+    .timeline-hour span {
+      font-size: 10px;
+      color: #B8A9A5;
+      font-weight: 500;
+    }
+
+    textarea {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: transparent;
+      font-family: inherit;
+      font-size: 12px;
+      color: #4A4240;
+      resize: none;
+      outline: none;
+      min-height: 50px;
+      line-height: 1.4;
+    }
+
+    textarea:focus {
+      background: rgba(212, 181, 196, 0.05);
+    }
+
+    textarea::placeholder {
+      color: #E5DFD8;
+    }
+
+    .footer {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: rgba(212, 181, 196, 0.08);
+      border-radius: 4px;
+      text-align: center;
+      font-size: 12px;
+      color: #8B7B78;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 상단 타이틀 -->
+    <div class="header">
+      <h1>Daily Schedule</h1>
+      <div class="date-control">
+        <input type="date" id="dateInput">
+      </div>
+      <div id="saveStatus"></div>
+    </div>
+
+    <!-- 메인 컨테이너 -->
+    <div class="main-container">
+      
+      <!-- 상단 헤더 (날짜) -->
+      <div class="date-header">
+        <div class="date-label">Today</div>
+        <div class="date-display" id="dateDisplay">12/25</div>
+        <div class="day-display" id="dayDisplay">Thursday</div>
+      </div>
+
+      <!-- 체크리스트 섹션 -->
+      <div class="checklist-section">
+        <div class="checklist-title">체크리스트</div>
+        <div class="checklist-input-group">
+          <input type="text" id="checklistInput" placeholder="추가하기">
+          <button id="addChecklistBtn">+</button>
+        </div>
+        <div id="checklistContainer"></div>
+      </div>
+
+      <!-- PLAN / ACTUAL 헤더 -->
+      <div class="timeline-headers">
+        <div class="timeline-header-item">
+          <div class="date-label">PLAN</div>
+        </div>
+        <div class="timeline-header-item">
+          <div class="date-label">ACTUAL</div>
+        </div>
+      </div>
+
+      <!-- 콘텐츠 섹션 -->
+      <div class="timeline-content">
+        <!-- 좌측 - PLAN -->
+        <div class="timeline-column" id="planContainer"></div>
+
+        <!-- 우측 - ACTUAL -->
+        <div class="timeline-column" id="actualContainer"></div>
+      </div>
+    </div>
+
+    <!-- 사용 가이드 -->
+    <div class="footer">
+      💡 체크리스트 항목을 드래그해서 원하는 시간대에 드롭하면 복사됩니다. 모든 데이터는 Google Sheets에 자동 저장됩니다.
+    </div>
+  </div>
+
+  <script>
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyl4yAJKpb1mK4rO0nskCxZN4c8EI9gnocfg9GDB6ptb7A8gwI35YRKKErccGQ0F6E5/exec';
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    let draggedItem = null;
+    let saveTimeout = null;
+
+    function initPlanner() {
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('dateInput').value = today;
+      
+      updateDisplay();
+      renderChecklist();
+      renderTimeline();
+      
+      document.getElementById('dateInput').addEventListener('change', () => {
+        updateDisplay();
+        renderChecklist();
+        renderTimeline();
+      });
+
+      document.getElementById('addChecklistBtn').addEventListener('click', addChecklistItem);
+      document.getElementById('checklistInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addChecklistItem();
+      });
+    }
+
+    function updateDisplay() {
+      const dateStr = document.getElementById('dateInput').value;
+      const date = new Date(dateStr + 'T00:00:00');
+      const displayDate = date.toLocaleDateString('ko-KR', { month: '2-digit', day: '2-digit' });
+      const dayName = dayNames[date.getDay()];
+      
+      document.getElementById('dateDisplay').textContent = displayDate;
+      document.getElementById('dayDisplay').textContent = dayName;
+    }
+
+    function addChecklistItem() {
+      const input = document.getElementById('checklistInput');
+      const value = input.value.trim();
+      
+      if (!value) return;
+      
+      const dateStr = document.getElementById('dateInput').value;
+      const saved = localStorage.getItem('aurora-checklists-' + dateStr);
+      const checklists = saved ? JSON.parse(saved) : [];
+      
+      const newItem = { id: Date.now(), text: value, checked: false };
+      checklists.push(newItem);
+      localStorage.setItem('aurora-checklists-' + dateStr, JSON.stringify(checklists));
+      
+      syncToGoogleSheets(dateStr, 'checklist', 'add', value);
+      
+      input.value = '';
+      renderChecklist();
+    }
+
+    function renderChecklist() {
+      const dateStr = document.getElementById('dateInput').value;
+      const saved = localStorage.getItem('aurora-checklists-' + dateStr);
+      const checklists = saved ? JSON.parse(saved) : [];
+      
+      const container = document.getElementById('checklistContainer');
+      container.innerHTML = '';
+      
+      checklists.forEach(item => {
+        const checklistItem = document.createElement('div');
+        checklistItem.className = 'checklist-item';
+        checklistItem.draggable = true;
+        checklistItem.dataset.itemId = item.id;
+        checklistItem.dataset.text = item.text;
+        
+        checklistItem.innerHTML = `
+          <input type="checkbox" ${item.checked ? 'checked' : ''}>
+          <span>${item.text}</span>
+          <button>×</button>
+        `;
+        
+        const checkbox = checklistItem.querySelector('input[type="checkbox"]');
+        checkbox.addEventListener('change', () => toggleChecklistItem(dateStr, item.id));
+        
+        const deleteBtn = checklistItem.querySelector('button');
+        deleteBtn.addEventListener('click', () => deleteChecklistItem(dateStr, item.id));
+        
+        checklistItem.addEventListener('dragstart', (e) => {
+          draggedItem = item;
+          e.dataTransfer.effectAllowed = 'copy';
+          e.dataTransfer.setData('text/plain', item.text);
+        });
+        
+        container.appendChild(checklistItem);
+      });
+    }
+
+    function toggleChecklistItem(dateStr, id) {
+      const saved = localStorage.getItem('aurora-checklists-' + dateStr);
+      const checklists = saved ? JSON.parse(saved) : [];
+      
+      const item = checklists.find(c => c.id === id);
+      if (item) {
+        item.checked = !item.checked;
+        syncToGoogleSheets(dateStr, 'checklist', 'toggle', item.text);
+      }
+      
+      localStorage.setItem('aurora-checklists-' + dateStr, JSON.stringify(checklists));
+      renderChecklist();
+    }
+
+    function deleteChecklistItem(dateStr, id) {
+      const saved = localStorage.getItem('aurora-checklists-' + dateStr);
+      const checklists = saved ? JSON.parse(saved) : [];
+      
+      const item = checklists.find(c => c.id === id);
+      const filtered = checklists.filter(c => c.id !== id);
+      
+      if (item) {
+        syncToGoogleSheets(dateStr, 'checklist', 'delete', item.text);
+      }
+      
+      localStorage.setItem('aurora-checklists-' + dateStr, JSON.stringify(filtered));
+      renderChecklist();
+    }
+
+    function renderTimeline() {
+      const dateStr = document.getElementById('dateInput').value;
+      const planContainer = document.getElementById('planContainer');
+      const actualContainer = document.getElementById('actualContainer');
+      
+      planContainer.innerHTML = '';
+      actualContainer.innerHTML = '';
+      
+      const saved = localStorage.getItem('aurora-' + dateStr);
+      const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
+      
+      for (let hour = 0; hour < 24; hour++) {
+        const hourStr = String(hour).padStart(2, '0');
+        
+        // PLAN
+        const planRow = document.createElement('div');
+        planRow.className = 'timeline-row';
+        planRow.innerHTML = `
+          <div class="timeline-hour"><span>${hourStr}</span></div>
+          <textarea id="plan-${hour}" placeholder="계획"></textarea>
+        `;
+        planContainer.appendChild(planRow);
+        
+        const planTA = planRow.querySelector('textarea');
+        planTA.value = data.plan[hour] || '';
+        planTA.addEventListener('input', () => savePlan(dateStr, hour, planTA.value));
+        planTA.addEventListener('blur', () => planTA.style.background = 'transparent');
+        
+        planTA.addEventListener('dragover', (e) => {
+          e.preventDefault();
+          e.dataTransfer.dropEffect = 'copy';
+          planTA.style.background = 'rgba(212, 181, 196, 0.1)';
+        });
+        
+        planTA.addEventListener('dragleave', () => {
+          planTA.style.background = 'transparent';
+        });
+        
+        planTA.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const text = e.dataTransfer.getData('text/plain');
+          if (text && draggedItem) {
+            planTA.value = (planTA.value ? planTA.value + '\n' : '') + text;
+            savePlan(dateStr, hour, planTA.value);
+            planTA.style.background = 'transparent';
+          }
+        });
+        
+        // ACTUAL
+        const actualRow = document.createElement('div');
+        actualRow.className = 'timeline-row';
+        actualRow.innerHTML = `
+          <div class="timeline-hour"><span>${hourStr}</span></div>
+          <textarea id="actual-${hour}" placeholder="실행"></textarea>
+        `;
+        actualContainer.appendChild(actualRow);
+        
+        const actualTA = actualRow.querySelector('textarea');
+        actualTA.value = data.actual[hour] || '';
+        actualTA.addEventListener('input', () => saveActual(dateStr, hour, actualTA.value));
+        actualTA.addEventListener('blur', () => actualTA.style.background = 'transparent');
+      }
+    }
+
+    function savePlan(dateStr, hour, value) {
+      const saved = localStorage.getItem('aurora-' + dateStr);
+      const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
+      data.plan[hour] = value;
+      localStorage.setItem('aurora-' + dateStr, JSON.stringify(data));
+      
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        syncToGoogleSheets(dateStr, 'plan', hour, value);
+      }, 1000);
+    }
+
+    function saveActual(dateStr, hour, value) {
+      const saved = localStorage.getItem('aurora-' + dateStr);
+      const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
+      data.actual[hour] = value;
+      localStorage.setItem('aurora-' + dateStr, JSON.stringify(data));
+      
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(() => {
+        syncToGoogleSheets(dateStr, 'actual', hour, value);
+      }, 1000);
+    }
+
+    function syncToGoogleSheets(date, type, hour, content) {
+      const payload = {
+        date: date,
+        type: type,
+        hour: hour,
+        content: content
+      };
+      
+      fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showSaveStatus('저장됨');
+        }
+      })
+      .catch(error => {
+        console.log('Save error:', error);
+        showSaveStatus('로컬 저장됨');
+      });
+    }
+
+    function showSaveStatus(message) {
+      const status = document.getElementById('saveStatus');
+      status.textContent = message;
+      setTimeout(() => {
+        status.textContent = '';
+      }, 2000);
+    }
+
+    initPlanner();
+  </script>
+</body>
+</html>
