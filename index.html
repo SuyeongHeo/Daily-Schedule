@@ -288,6 +288,26 @@
       border-right: 1px solid #E8DFD8;
     }
 
+    .copy-btn {
+      width: 28px;
+      min-width: 28px;
+      padding: 0 4px;
+      background: transparent;
+      border: none;
+      color: #B8A9A5;
+      cursor: pointer;
+      font-size: 14px;
+      transition: color 0.2s, background 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .copy-btn:hover {
+      color: #D4B5C4;
+      background: rgba(212, 181, 196, 0.05);
+    }
+
     .timeline-row {
       display: flex;
       border-bottom: 1px solid #E8DFD9;
@@ -356,8 +376,12 @@
       background: rgba(0, 0, 0, 0.02);
     }
 
-    textarea::placeholder {
-      color: #E5DFD8;
+    .timeline-row.matched textarea {
+      background: rgba(212, 181, 196, 0.08) !important;
+    }
+
+    .timeline-row.matched textarea:focus {
+      background: rgba(212, 181, 196, 0.15) !important;
     }
 
     .footer {
@@ -721,13 +745,20 @@
         planRow.innerHTML = `
           <div class="timeline-hour"><span>${hourStr}</span></div>
           <textarea id="plan-${hour}" placeholder="계획"></textarea>
+          <button class="copy-btn" title="ACTUAL에 복사">📋</button>
         `;
         planContainer.appendChild(planRow);
         
         const planTA = planRow.querySelector('textarea');
         planTA.value = data.plan[hour] || '';
-        planTA.addEventListener('input', () => savePlan(dateStr, hour, planTA.value));
+        planTA.addEventListener('input', () => {
+          savePlan(dateStr, hour, planTA.value);
+          updateMatchedRows(dateStr);
+        });
         planTA.addEventListener('blur', () => planTA.style.background = 'transparent');
+        
+        const copyBtn = planRow.querySelector('.copy-btn');
+        copyBtn.addEventListener('click', () => copyPlanToActual(hour));
         
         planTA.addEventListener('dragover', (e) => {
           e.preventDefault();
@@ -745,6 +776,7 @@
           if (text && draggedItem) {
             planTA.value = (planTA.value ? planTA.value + '\n' : '') + text;
             savePlan(dateStr, hour, planTA.value);
+            updateMatchedRows(dateStr);
             planTA.style.background = 'transparent';
           }
         });
@@ -761,9 +793,15 @@
         
         const actualTA = actualRow.querySelector('textarea');
         actualTA.value = data.actual[hour] || '';
-        actualTA.addEventListener('input', () => saveActual(dateStr, hour, actualTA.value));
+        actualTA.addEventListener('input', () => {
+          saveActual(dateStr, hour, actualTA.value);
+          updateMatchedRows(dateStr);
+        });
         actualTA.addEventListener('blur', () => actualTA.style.background = 'transparent');
       }
+      
+      // 렌더링 후 매칭 확인
+      updateMatchedRows(dateStr);
     }
 
     function updateCurrentTimeIndicator() {
@@ -836,6 +874,51 @@
       setTimeout(() => {
         status.textContent = '';
       }, 2000);
+    }
+
+    function updateMatchedRows(dateStr) {
+      const data = localStorage.getItem('aurora-' + dateStr);
+      const planData = data ? JSON.parse(data).plan : {};
+      const actualData = data ? JSON.parse(data).actual : {};
+      
+      for (let hour = 0; hour < 24; hour++) {
+        const planTA = document.getElementById('plan-' + hour);
+        const actualTA = document.getElementById('actual-' + hour);
+        
+        if (planTA && actualTA) {
+          const planRow = planTA.closest('.timeline-row');
+          const actualRow = actualTA.closest('.timeline-row');
+          
+          const planValue = planTA.value.trim();
+          const actualValue = actualTA.value.trim();
+          
+          // PLAN과 ACTUAL이 같고 둘 다 비어있지 않으면 matched 클래스 추가
+          if (planValue === actualValue && planValue !== '') {
+            planRow.classList.add('matched');
+            actualRow.classList.add('matched');
+          } else {
+            planRow.classList.remove('matched');
+            actualRow.classList.remove('matched');
+          }
+        }
+      }
+    }
+
+    function copyPlanToActual(hour) {
+      const planTA = document.getElementById('plan-' + hour);
+      const actualTA = document.getElementById('actual-' + hour);
+      
+      if (planTA && actualTA) {
+        const dateStr = document.getElementById('dateInput').value;
+        actualTA.value = planTA.value;
+        saveActual(dateStr, hour, planTA.value);
+        
+        // 매칭 상태 업데이트
+        updateMatchedRows(dateStr);
+        
+        // 복사 완료 피드백
+        showSaveStatus('복사됨');
+      }
     }
 
     initPlanner();
