@@ -344,6 +344,31 @@
       background: rgba(212, 181, 196, 0.05);
     }
 
+    .match-toggle-btn {
+      width: 28px;
+      min-width: 28px;
+      padding: 0 4px;
+      background: transparent;
+      border: none;
+      color: #B8A9A5;
+      cursor: pointer;
+      font-size: 14px;
+      transition: color 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .match-toggle-btn:hover {
+      color: #D4B5C4;
+    }
+
+    .match-toggle-btn.active {
+      color: #D4B5C4;
+      font-weight: bold;
+    }
+
     .timeline-row {
       display: flex;
       border-bottom: 1px solid #E8DFD9;
@@ -823,6 +848,7 @@
         planRow.innerHTML = `
           <div class="timeline-hour"><span>${hourStr}</span></div>
           <textarea id="plan-${hour}" placeholder="계획"></textarea>
+          <button class="match-toggle-btn" title="계획과 실행이 같음으로 표시">✓</button>
           <button class="copy-btn" title="ACTUAL에 복사">📋</button>
         `;
         planContainer.appendChild(planRow);
@@ -834,6 +860,9 @@
           updateMatchedRows(dateStr);
         });
         planTA.addEventListener('blur', () => planTA.style.background = 'transparent');
+        
+        const matchToggleBtn = planRow.querySelector('.match-toggle-btn');
+        matchToggleBtn.addEventListener('click', () => toggleManualMatch(hour, dateStr));
         
         const copyBtn = planRow.querySelector('.copy-btn');
         copyBtn.addEventListener('click', () => copyPlanToActual(hour));
@@ -866,6 +895,7 @@
         actualRow.innerHTML = `
           <div class="timeline-hour"><span>${hourStr}</span></div>
           <textarea id="actual-${hour}" placeholder="실행"></textarea>
+          <button class="match-toggle-btn" title="계획과 실행이 같음으로 표시">✓</button>
         `;
         actualContainer.appendChild(actualRow);
         
@@ -876,6 +906,9 @@
           updateMatchedRows(dateStr);
         });
         actualTA.addEventListener('blur', () => actualTA.style.background = 'transparent');
+        
+        const actualMatchToggleBtn = actualRow.querySelector('.match-toggle-btn');
+        actualMatchToggleBtn.addEventListener('click', () => toggleManualMatch(hour, dateStr));
       }
       
       // 렌더링 후 매칭 확인
@@ -981,10 +1014,28 @@
       });
     }
 
+    function getManualMatched(dateStr) {
+      const saved = localStorage.getItem('aurora-manual-matched-' + dateStr);
+      return saved ? JSON.parse(saved) : {};
+    }
+
+    function saveManualMatched(dateStr, manualMatched) {
+      localStorage.setItem('aurora-manual-matched-' + dateStr, JSON.stringify(manualMatched));
+    }
+
+    function toggleManualMatch(hour, dateStr) {
+      const manualMatched = getManualMatched(dateStr);
+      manualMatched[hour] = !manualMatched[hour];
+      saveManualMatched(dateStr, manualMatched);
+      updateMatchedRows(dateStr);
+      showSaveStatus('매칭 상태 저장됨');
+    }
+
     function updateMatchedRows(dateStr) {
       const data = localStorage.getItem('aurora-' + dateStr);
       const planData = data ? JSON.parse(data).plan : {};
       const actualData = data ? JSON.parse(data).actual : {};
+      const manualMatched = getManualMatched(dateStr);
       
       const startHour = 6;
       const endHour = 24;
@@ -1000,13 +1051,30 @@
           const planValue = planTA.value.trim();
           const actualValue = actualTA.value.trim();
           
-          // PLAN과 ACTUAL이 같고 둘 다 비어있지 않으면 matched 클래스 추가
-          if (planValue === actualValue && planValue !== '') {
+          // 자동 매칭: PLAN과 ACTUAL이 같고 둘 다 비어있지 않음
+          const autoMatched = planValue === actualValue && planValue !== '';
+          
+          // 수동 매칭: 사용자가 버튼 클릭
+          const isManualMatched = manualMatched[hour] === true;
+          
+          // 둘 중 하나라도 참이면 matched
+          if (autoMatched || isManualMatched) {
             planRow.classList.add('matched');
             actualRow.classList.add('matched');
           } else {
             planRow.classList.remove('matched');
             actualRow.classList.remove('matched');
+          }
+          
+          // 버튼 상태 업데이트
+          const planBtn = planRow.querySelector('.match-toggle-btn');
+          const actualBtn = actualRow.querySelector('.match-toggle-btn');
+          if (isManualMatched) {
+            planBtn.classList.add('active');
+            actualBtn.classList.add('active');
+          } else {
+            planBtn.classList.remove('active');
+            actualBtn.classList.remove('active');
           }
         }
       }
