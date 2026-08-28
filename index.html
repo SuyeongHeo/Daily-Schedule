@@ -83,7 +83,7 @@
       border-radius: 6px;
       box-shadow: 0 2px 12px rgba(0,0,0,0.05);
       overflow: hidden;
-      height: 1400px;
+      height: 1050px;
       display: flex;
       flex-direction: column;
       position: relative;
@@ -795,11 +795,11 @@
       const currentHour = getCurrentHour();
       const today = isToday();
       
-      // 06:00부터 시작 (06:00 ~ 23:59, 그 다음 00:00 ~ 05:59)
+      // 06:00부터 23:00까지만 표시 (18시간)
       const startHour = 6;
+      const endHour = 24; // 23:00까지
       
-      for (let i = 0; i < 24; i++) {
-        const hour = (startHour + i) % 24;
+      for (let hour = startHour; hour < endHour; hour++) {
         const hourStr = String(hour).padStart(2, '0');
         
         // 06:00 기준으로 과거 판정
@@ -810,7 +810,7 @@
             isPast = hour >= startHour && hour < currentHour;
           } else {
             // 현재 시간이 06:00 미만 (새벽): 06:00부터 23:59까지가 past
-            isPast = hour >= startHour || hour < currentHour;
+            isPast = hour >= startHour;
           }
         }
         
@@ -888,12 +888,13 @@
       
       const currentHour = getCurrentHour();
       const startHour = 6;
+      const endHour = 24;
+      
+      // 현재 시간이 06:00 ~ 23:00 범위에 없으면 스크롤 안 함
+      if (currentHour < startHour || currentHour >= endHour) return;
       
       // 현재 시간이 타임라인 상에서 어느 인덱스인지 계산
-      let indexInTimeline = currentHour - startHour;
-      if (indexInTimeline < 0) {
-        indexInTimeline = 24 + indexInTimeline; // 00:00~05:59는 뒤에 있음
-      }
+      const indexInTimeline = currentHour - startHour;
       
       const timelineContent = document.querySelector('.timeline-content');
       
@@ -985,7 +986,10 @@
       const planData = data ? JSON.parse(data).plan : {};
       const actualData = data ? JSON.parse(data).actual : {};
       
-      for (let hour = 0; hour < 24; hour++) {
+      const startHour = 6;
+      const endHour = 24;
+      
+      for (let hour = startHour; hour < endHour; hour++) {
         const planTA = document.getElementById('plan-' + hour);
         const actualTA = document.getElementById('actual-' + hour);
         
