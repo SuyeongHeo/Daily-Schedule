@@ -460,6 +460,7 @@
         <input type="date" id="dateInput">
         <button id="todayBtn">오늘</button>
         <button id="nextBtn">내일 →</button>
+        <button id="syncBtn" title="이 기기의 오늘 데이터를 시트로 올리고 다시 불러옵니다">↻ 동기화</button>
       </div>
     </div>
 
@@ -543,7 +544,9 @@
 
     // 데이터 불러오기
     function loadAllData() {
-      fetch(CSV_URL)
+      const url = CSV_URL + '&_=' + Date.now();
+
+      fetch(url, { cache: 'no-store' })
         .then(r => r.text())
         .then(csv => {
           const rows = parseCSV(csv).slice(1);
@@ -801,6 +804,36 @@
     });
 
     document.getElementById('dateInput').addEventListener('change', renderPage);
+
+    // 강제 동기화: 이 기기의 현재 날짜 데이터를 시트로 밀어올림
+    document.getElementById('syncBtn').addEventListener('click', () => {
+      const dateStr = document.getElementById('dateInput').value;
+      const saved = localStorage.getItem('aurora-' + dateStr);
+      const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
+
+      let count = 0;
+
+      for (let h = 6; h < 24; h++) {
+        const p = (data.plan[h] || '').trim();
+        const a = (data.actual[h] || '').trim();
+        if (p) { syncToSheet(dateStr, 'plan', h, data.plan[h]); count++; }
+        if (a) { syncToSheet(dateStr, 'actual', h, data.actual[h]); count++; }
+      }
+
+      const memo = localStorage.getItem('aurora-memo-' + dateStr);
+      if (memo && memo.trim()) { syncToSheet(dateStr, 'memo', '', memo); count++; }
+
+      // 이 기기에 있는 모든 날짜의 체크리스트를 올림
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('aurora-checklist-')) continue;
+        const keyDate = key.replace('aurora-checklist-', '');
+        const items = localStorage.getItem(key);
+        if (items && items !== '[]') { syncToSheet(keyDate, 'checklist', '', items); count++; }
+      }
+
+      alert(count + '건을 시트로 올렸습니다. 잠시 후 다른 기기에서 새로고침하세요.');
+    });
 
     // 체크리스트
     document.getElementById('addChecklistBtn').addEventListener('click', () => {
