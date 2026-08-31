@@ -65,6 +65,59 @@
       font-size: 14px;
     }
 
+    .progress-section {
+      max-width: 1200px;
+      margin: 0 auto 1.5rem;
+      background: white;
+      border-radius: 6px;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+    .progress-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.6rem;
+    }
+
+    .progress-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4A4240;
+    }
+
+    .progress-count {
+      font-size: 12px;
+      color: #8B7B78;
+    }
+
+    .progress-bar {
+      height: 10px;
+      background: #F0EAE5;
+      border-radius: 5px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: #D4B5C4;
+      border-radius: 5px;
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .carryover-badge {
+      display: inline-block;
+      font-size: 9px;
+      color: #B8875F;
+      background: #F5E9DC;
+      border-radius: 2px;
+      padding: 1px 4px;
+      margin-right: 4px;
+      flex-shrink: 0;
+    }
+
     .main {
       display: flex;
       gap: 1.5rem;
@@ -313,6 +366,16 @@
       </div>
     </div>
 
+    <div class="progress-section">
+      <div class="progress-header">
+        <span class="progress-label">오늘의 실행률</span>
+        <span class="progress-count" id="progressCount">0 / 0 (0%)</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+    </div>
+
     <div class="main">
       <!-- 왼쪽 사이드바 -->
       <div class="sidebar">
@@ -464,6 +527,36 @@
         localStorage.setItem('aurora-memo-' + dateStr, e.target.value);
         syncToSheet(dateStr, 'memo', '', e.target.value);
       });
+
+      updateProgress();
+    }
+
+    function updateProgress() {
+      const dateStr = document.getElementById('dateInput').value;
+      const saved = localStorage.getItem('aurora-' + dateStr);
+      const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
+      const matched = localStorage.getItem('aurora-matched-' + dateStr);
+      const matchedData = matched ? JSON.parse(matched) : {};
+
+      let planned = 0;
+      let done = 0;
+
+      for (let h = 6; h < 24; h++) {
+        const planValue = (data.plan[h] || '').trim();
+        if (planValue === '') continue;
+
+        planned++;
+
+        const actualValue = (data.actual[h] || '').trim();
+        const isAutoMatch = planValue === actualValue;
+        const isManualMatch = matchedData[h] === true;
+
+        if (isAutoMatch || isManualMatch) done++;
+      }
+
+      const percent = planned === 0 ? 0 : Math.round((done / planned) * 100);
+      document.getElementById('progressCount').textContent = `${done} / ${planned} (${percent}%)`;
+      document.getElementById('progressFill').style.width = percent + '%';
     }
 
     function updateMatching(dateStr, hour) {
@@ -472,8 +565,13 @@
       const matched = localStorage.getItem('aurora-matched-' + dateStr);
       const matchedData = matched ? JSON.parse(matched) : {};
 
-      const planRow = document.querySelector(`[data-hour="${hour}"]`);
-      const actualRow = planRow?.nextSibling || document.querySelector(`.actual-textarea[data-hour="${hour}"]`)?.closest('.hour-row');
+      const planTA = document.querySelector(`#planCol .plan-textarea[data-hour="${hour}"]`);
+      const actualTA = document.querySelector(`#actualCol .actual-textarea[data-hour="${hour}"]`);
+
+      if (!planTA || !actualTA) return;
+
+      const planRow = planTA.closest('.hour-row');
+      const actualRow = actualTA.closest('.hour-row');
 
       if (!planRow || !actualRow) return;
 
@@ -499,6 +597,8 @@
         planBtn.classList.remove('active');
         actualBtn.classList.remove('active');
       }
+
+      updateProgress();
     }
 
     function toggleMatch(dateStr, hour) {
@@ -580,9 +680,71 @@
       const checklistKey = 'aurora-checklist-' + dateStr;
       const checklists = JSON.parse(localStorage.getItem(checklistKey) || '[]');
 
+      // 이전 날짜들의 미완료 항목 수집
+      const carryovers = [];
+      const seen = new Set(checklists.map(c => c.text));
+
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!key || !key.startsWith('aurora-checklist-')) continue;
+
+        const keyDate = key.replace('aurora-checklist-', '');
+        if (keyDate >= dateStr) continue;
+
+        let items;
+        try {
+          items = JSON.parse(localStorage.getItem(key) || '[]');
+        } catch (e) {
+          continue;
+        }
+
+        items.forEach(item => {
+          if (item.checked) return;
+          if (seen.has(item.text)) return;
+          seen.add(item.text);
+          carryovers.push({ item, sourceDate: keyDate, sourceKey: key });
+        });
+      }
+
+      carryovers.sort((a, b) => a.sourceDate.localeCompare(b.sourceDate));
+
       const list = document.getElementById('checklistList');
       list.innerHTML = '';
 
+      // 이월 항목 먼저 표시
+      carryovers.forEach(({ item, sourceDate, sourceKey }) => {
+        const div = document.createElement('div');
+        div.className = 'checklist-item';
+        div.innerHTML = `
+          <input type="checkbox">
+          <span><span class="carryover-badge">${sourceDate.slice(5)}</span>${item.text}</span>
+          <button class="delete-btn">×</button>
+        `;
+
+        div.querySelector('input').addEventListener('change', (e) => {
+          const sourceItems = JSON.parse(localStorage.getItem(sourceKey) || '[]');
+          const target = sourceItems.find(s => s.id === item.id);
+          if (target) {
+            target.checked = e.target.checked;
+            localStorage.setItem(sourceKey, JSON.stringify(sourceItems));
+          }
+          renderChecklist();
+        });
+
+        div.querySelector('.delete-btn').addEventListener('click', () => {
+          const sourceItems = JSON.parse(localStorage.getItem(sourceKey) || '[]');
+          const idx = sourceItems.findIndex(s => s.id === item.id);
+          if (idx > -1) {
+            sourceItems.splice(idx, 1);
+            localStorage.setItem(sourceKey, JSON.stringify(sourceItems));
+          }
+          renderChecklist();
+        });
+
+        list.appendChild(div);
+      });
+
+      // 오늘 항목
       checklists.forEach(item => {
         const div = document.createElement('div');
         div.className = 'checklist-item';
@@ -595,6 +757,7 @@
         div.querySelector('input').addEventListener('change', (e) => {
           item.checked = e.target.checked;
           localStorage.setItem(checklistKey, JSON.stringify(checklists));
+          renderChecklist();
         });
 
         div.querySelector('.delete-btn').addEventListener('click', () => {
