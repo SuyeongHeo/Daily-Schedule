@@ -566,6 +566,15 @@
               localStorage.setItem(key, JSON.stringify(data));
             } else if (type === 'memo') {
               localStorage.setItem('aurora-memo-' + date, content);
+            } else if (type === 'checklist') {
+              try {
+                const parsed = JSON.parse(content);
+                if (Array.isArray(parsed)) {
+                  localStorage.setItem('aurora-checklist-' + date, JSON.stringify(parsed));
+                }
+              } catch (e) {
+                // 파싱 실패 시 무시
+              }
             }
           });
 
@@ -799,13 +808,17 @@
       if (!input.value.trim()) return;
       
       const dateStr = document.getElementById('dateInput').value;
-      const checklistKey = 'aurora-checklist-' + dateStr;
-      const checklists = JSON.parse(localStorage.getItem(checklistKey) || '[]');
+      const checklists = JSON.parse(localStorage.getItem('aurora-checklist-' + dateStr) || '[]');
       checklists.push({ id: Date.now(), text: input.value, checked: false });
-      localStorage.setItem(checklistKey, JSON.stringify(checklists));
+      saveChecklist(dateStr, checklists);
       input.value = '';
       renderChecklist();
     });
+
+    function saveChecklist(dateStr, items) {
+      localStorage.setItem('aurora-checklist-' + dateStr, JSON.stringify(items));
+      syncToSheet(dateStr, 'checklist', '', JSON.stringify(items));
+    }
 
     function renderChecklist() {
       const dateStr = document.getElementById('dateInput').value;
@@ -858,7 +871,7 @@
           const target = sourceItems.find(s => s.id === item.id);
           if (target) {
             target.checked = e.target.checked;
-            localStorage.setItem(sourceKey, JSON.stringify(sourceItems));
+            saveChecklist(sourceDate, sourceItems);
           }
           renderChecklist();
         });
@@ -868,7 +881,7 @@
           const idx = sourceItems.findIndex(s => s.id === item.id);
           if (idx > -1) {
             sourceItems.splice(idx, 1);
-            localStorage.setItem(sourceKey, JSON.stringify(sourceItems));
+            saveChecklist(sourceDate, sourceItems);
           }
           renderChecklist();
         });
@@ -888,13 +901,13 @@
 
         div.querySelector('input').addEventListener('change', (e) => {
           item.checked = e.target.checked;
-          localStorage.setItem(checklistKey, JSON.stringify(checklists));
+          saveChecklist(dateStr, checklists);
           renderChecklist();
         });
 
         div.querySelector('.delete-btn').addEventListener('click', () => {
           checklists.splice(checklists.indexOf(item), 1);
-          localStorage.setItem(checklistKey, JSON.stringify(checklists));
+          saveChecklist(dateStr, checklists);
           renderChecklist();
         });
 
