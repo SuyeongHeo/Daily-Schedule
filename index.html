@@ -519,11 +519,24 @@
       renderPage();
     }
 
+    const syncTimers = {};
+
     function syncToSheet(dateStr, type, hour, content) {
-      fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        body: JSON.stringify({ date: dateStr, type, hour, content })
-      }).catch(err => console.log('Sync 실패:', err));
+      const key = `${dateStr}-${type}-${hour}`;
+      
+      // 기존 타이머 취소
+      if (syncTimers[key]) {
+        clearTimeout(syncTimers[key]);
+      }
+      
+      // 1초 후에 저장 (입력이 멈춘 후)
+      syncTimers[key] = setTimeout(() => {
+        fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ date: dateStr, type, hour, content })
+        }).catch(err => console.log('Sync 실패:', err));
+        delete syncTimers[key];
+      }, 1000);
     }
 
     // 날짜 컨트롤
