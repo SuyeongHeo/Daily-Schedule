@@ -557,6 +557,9 @@
     let saveTimeout = null;
 
     function initPlanner() {
+      // Google Sheets 데이터 먼저 로드
+      loadDataFromGoogleSheets();
+      
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('dateInput').value = today;
       
@@ -915,7 +918,42 @@
       updateMatchedRows(dateStr);
     }
 
-    function updateCurrentTimeIndicator() {
+    function loadDataFromGoogleSheets() {
+      const sheetId = '1R6g9pkgX-p8jBkPU3byBZPjvq8Uj4fDUbdP6dkPQ1ZI';
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/query?tqx=out:csv&sheet=Daily%20Scheduler`;
+      
+      fetch(csvUrl)
+        .then(response => response.text())
+        .then(csv => {
+          const lines = csv.split('\n');
+          
+          // 헤더 제외하고 데이터 처리
+          for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            
+            // CSV 파싱 (쉼표로 구분, 따옴표 제거)
+            const parts = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
+            if (parts.length < 4) continue;
+            
+            const [date, type, hour, content] = parts;
+            
+            if (!date || !type) continue;
+            
+            // 날짜별 로컬스토리지에 저장
+            if (type === 'plan' || type === 'actual') {
+              const key = 'aurora-' + date;
+              const saved = localStorage.getItem(key);
+              const dateData = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
+              dateData[type][hour] = content;
+              localStorage.setItem(key, JSON.stringify(dateData));
+            }
+          }
+          
+          console.log('Google Sheets 데이터 로드 완료');
+        })
+        .catch(error => console.log('CSV 로드 실패:', error));
+    }
       const today = isToday();
       if (!today) return;
       
