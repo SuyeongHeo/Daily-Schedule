@@ -352,6 +352,103 @@
       background: #D4B5C4;
       color: white;
     }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem 0.5rem;
+      }
+
+      .header h1 {
+        font-size: 20px;
+        margin-bottom: 1rem;
+      }
+
+      .date-controls {
+        gap: 0.4rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .date-controls button {
+        padding: 8px 10px;
+        font-size: 12px;
+      }
+
+      .date-controls input {
+        font-size: 14px;
+        padding: 8px;
+      }
+
+      .progress-section {
+        padding: 0.8rem 1rem;
+        margin-bottom: 1rem;
+      }
+
+      .main {
+        flex-direction: column;
+        gap: 0;
+        min-height: 0;
+      }
+
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #E8DFD9;
+        padding: 1rem;
+      }
+
+      .memo-area textarea {
+        min-height: 70px;
+      }
+
+      .timeline {
+        overflow: visible;
+      }
+
+      .timeline-header {
+        position: sticky;
+        top: 0;
+        background: white;
+        z-index: 5;
+      }
+
+      .timeline-header-item {
+        padding: 0.7rem;
+      }
+
+      .timeline-rows {
+        overflow: visible;
+      }
+
+      .hour-row {
+        min-height: 52px;
+      }
+
+      .hour-label {
+        width: 30px;
+        min-width: 30px;
+        padding: 6px 2px;
+        font-size: 10px;
+      }
+
+      .hour-content {
+        padding: 2px;
+        gap: 2px;
+      }
+
+      .hour-textarea {
+        padding: 4px;
+        font-size: 13px;
+        min-width: 0;
+      }
+
+      .match-btn,
+      .copy-btn {
+        width: 26px;
+        min-width: 26px;
+        font-size: 13px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -408,43 +505,78 @@
 
   <script>
     const SHEET_ID = '1R6g9pkgX-p8jBkPU3byBZPjvq8Uj4fDUbdP6dkPQ1ZI';
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/query?tqx=out:csv&sheet=Daily%20Scheduler`;
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=0`;
     const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyl4yAJKpb1mK4rO0nskCxZN4c8EI9gnocfg9GDB6ptb7A8gwI35YRKKErccGQ0F6E5/exec';
 
     // 오늘 날짜 설정
     const today = new Date().toISOString().split('T')[0];
     document.getElementById('dateInput').value = today;
 
+    function parseCSV(text) {
+      const rows = [];
+      let row = [];
+      let field = '';
+      let inQuotes = false;
+
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+
+        if (inQuotes) {
+          if (c === '"') {
+            if (text[i + 1] === '"') { field += '"'; i++; }
+            else inQuotes = false;
+          } else {
+            field += c;
+          }
+        } else {
+          if (c === '"') inQuotes = true;
+          else if (c === ',') { row.push(field); field = ''; }
+          else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+          else if (c === '\r') { /* skip */ }
+          else field += c;
+        }
+      }
+
+      if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+      return rows;
+    }
+
     // 데이터 불러오기
     function loadAllData() {
       fetch(CSV_URL)
         .then(r => r.text())
         .then(csv => {
-          const lines = csv.split('\n').slice(1);
-          lines.forEach(line => {
-            if (!line.trim()) return;
-            const parts = line.split(',').map(s => s.trim().replace(/^"|"$/g, ''));
-            const [date, type, hour, content] = parts;
-            
+          const rows = parseCSV(csv).slice(1);
+
+          rows.forEach(parts => {
+            if (parts.length < 4) return;
+
+            const date = (parts[0] || '').trim();
+            const type = (parts[1] || '').trim();
+            const hour = (parts[2] || '').trim();
+            const content = parts[3] || '';
+
             if (!date || !type) return;
 
-            const key = 'aurora-' + date;
-            const saved = localStorage.getItem(key);
-            const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
-
             if (type === 'plan' || type === 'actual') {
+              const key = 'aurora-' + date;
+              const saved = localStorage.getItem(key);
+              const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
               data[type][hour] = content;
               localStorage.setItem(key, JSON.stringify(data));
             } else if (type === 'memo') {
               localStorage.setItem('aurora-memo-' + date, content);
             }
           });
-          
+
+          console.log('시트에서 ' + rows.length + '행 로드');
           renderPage();
+          renderChecklist();
         })
         .catch(err => {
           console.log('데이터 로드 실패, 로컬 데이터 사용:', err);
           renderPage();
+          renderChecklist();
         });
     }
 
