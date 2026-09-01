@@ -793,26 +793,32 @@
     }
 
     // 날짜 컨트롤
+    function goToDate(dateStr) {
+      document.getElementById('dateInput').value = dateStr;
+      renderPage();
+      renderChecklist();
+    }
+
     document.getElementById('prevBtn').addEventListener('click', () => {
       const date = new Date(document.getElementById('dateInput').value);
       date.setDate(date.getDate() - 1);
-      document.getElementById('dateInput').value = date.toISOString().split('T')[0];
-      renderPage();
+      goToDate(date.toISOString().split('T')[0]);
     });
 
     document.getElementById('todayBtn').addEventListener('click', () => {
-      document.getElementById('dateInput').value = today;
-      renderPage();
+      goToDate(today);
     });
 
     document.getElementById('nextBtn').addEventListener('click', () => {
       const date = new Date(document.getElementById('dateInput').value);
       date.setDate(date.getDate() + 1);
-      document.getElementById('dateInput').value = date.toISOString().split('T')[0];
-      renderPage();
+      goToDate(date.toISOString().split('T')[0]);
     });
 
-    document.getElementById('dateInput').addEventListener('change', renderPage);
+    document.getElementById('dateInput').addEventListener('change', () => {
+      renderPage();
+      renderChecklist();
+    });
 
     // 메모 리스너 (최초 1회만 등록, 저장 시점의 날짜를 그때그때 읽음)
     document.getElementById('memoInput').addEventListener('input', (e) => {
@@ -967,7 +973,6 @@
     // 초기화
     loadAllData();
     renderChecklist();
-    document.getElementById('dateInput').addEventListener('change', renderChecklist);
   </script>
 </body>
 </html>
