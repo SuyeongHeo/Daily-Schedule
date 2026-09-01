@@ -200,6 +200,11 @@
       word-break: break-word;
     }
 
+    .checklist-item.done span {
+      text-decoration: line-through;
+      color: #B8A9A5;
+    }
+
     .checklist-item .delete-btn {
       background: none;
       border: none;
@@ -221,8 +226,15 @@
       border-radius: 3px;
       font-size: 12px;
       font-family: inherit;
+      line-height: 1.5;
       resize: vertical;
-      min-height: 100px;
+      min-height: 140px;
+      max-height: 600px;
+      outline: none;
+    }
+
+    .memo-area textarea:focus {
+      border-color: #D4B5C4;
     }
 
     .timeline {
@@ -398,7 +410,8 @@
       }
 
       .memo-area textarea {
-        min-height: 70px;
+        min-height: 120px;
+        font-size: 13px;
       }
 
       .timeline {
@@ -664,13 +677,8 @@
         updateMatching(dateStr, h);
       }
 
-      // 메모 렌더링
-      const memo = localStorage.getItem('aurora-memo-' + dateStr) || '';
-      document.getElementById('memoInput').value = memo;
-      document.getElementById('memoInput').addEventListener('input', (e) => {
-        localStorage.setItem('aurora-memo-' + dateStr, e.target.value);
-        syncToSheet(dateStr, 'memo', '', e.target.value);
-      });
+      // 메모 렌더링 (리스너는 아래에서 한 번만 등록)
+      document.getElementById('memoInput').value = localStorage.getItem('aurora-memo-' + dateStr) || '';
 
       updateProgress();
     }
@@ -805,6 +813,13 @@
 
     document.getElementById('dateInput').addEventListener('change', renderPage);
 
+    // 메모 리스너 (최초 1회만 등록, 저장 시점의 날짜를 그때그때 읽음)
+    document.getElementById('memoInput').addEventListener('input', (e) => {
+      const d = document.getElementById('dateInput').value;
+      localStorage.setItem('aurora-memo-' + d, e.target.value);
+      syncToSheet(d, 'memo', '', e.target.value);
+    });
+
     // 강제 동기화: 이 기기의 현재 날짜 데이터를 시트로 밀어올림
     document.getElementById('syncBtn').addEventListener('click', () => {
       const dateStr = document.getElementById('dateInput').value;
@@ -906,7 +921,7 @@
             target.checked = e.target.checked;
             saveChecklist(sourceDate, sourceItems);
           }
-          renderChecklist();
+          div.classList.toggle('done', e.target.checked);
         });
 
         div.querySelector('.delete-btn').addEventListener('click', () => {
@@ -925,7 +940,7 @@
       // 오늘 항목
       checklists.forEach(item => {
         const div = document.createElement('div');
-        div.className = 'checklist-item';
+        div.className = 'checklist-item' + (item.checked ? ' done' : '');
         div.innerHTML = `
           <input type="checkbox" ${item.checked ? 'checked' : ''}>
           <span>${item.text}</span>
@@ -935,7 +950,7 @@
         div.querySelector('input').addEventListener('change', (e) => {
           item.checked = e.target.checked;
           saveChecklist(dateStr, checklists);
-          renderChecklist();
+          div.classList.toggle('done', e.target.checked);
         });
 
         div.querySelector('.delete-btn').addEventListener('click', () => {
