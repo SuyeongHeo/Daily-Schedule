@@ -70,15 +70,23 @@
       margin: 0 auto 1.5rem;
       background: white;
       border-radius: 6px;
-      padding: 1rem 1.5rem;
+      padding: 1.2rem 1.5rem;
       box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+    }
+
+    .progress-block {
+      margin-bottom: 1rem;
+    }
+
+    .progress-block:last-child {
+      margin-bottom: 0;
     }
 
     .progress-header {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      margin-bottom: 0.6rem;
+      margin-bottom: 0.5rem;
     }
 
     .progress-label {
@@ -87,24 +95,80 @@
       color: #4A4240;
     }
 
+    .progress-label.sub {
+      font-weight: 400;
+      color: #8B7B78;
+      font-size: 11px;
+    }
+
     .progress-count {
       font-size: 12px;
       color: #8B7B78;
     }
 
     .progress-bar {
-      height: 10px;
+      height: 12px;
       background: #F0EAE5;
-      border-radius: 5px;
+      border-radius: 6px;
       overflow: hidden;
+    }
+
+    .progress-bar.sub {
+      height: 6px;
+      border-radius: 3px;
     }
 
     .progress-fill {
       height: 100%;
-      background: #D4B5C4;
-      border-radius: 5px;
+      background: #C99BB4;
+      border-radius: 6px;
       width: 0%;
       transition: width 0.3s ease;
+    }
+
+    .progress-fill.sub {
+      background: #DCCBD4;
+      border-radius: 3px;
+    }
+
+    .week-strip {
+      display: flex;
+      gap: 6px;
+      margin-top: 1.2rem;
+      padding-top: 1rem;
+      border-top: 1px solid #F0EAE5;
+    }
+
+    .week-day {
+      flex: 1;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .week-day-bar {
+      height: 44px;
+      background: #F5F0EB;
+      border-radius: 3px;
+      display: flex;
+      align-items: flex-end;
+      overflow: hidden;
+      margin-bottom: 4px;
+    }
+
+    .week-day-fill {
+      width: 100%;
+      background: #C99BB4;
+      border-radius: 3px 3px 0 0;
+    }
+
+    .week-day-label {
+      font-size: 9px;
+      color: #B8A9A5;
+    }
+
+    .week-day.is-today .week-day-label {
+      color: #C99BB4;
+      font-weight: 700;
     }
 
     .carryover-badge {
@@ -366,6 +430,28 @@
       color: white;
     }
 
+    .hour-label.clickable {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .hour-row.focus {
+      box-shadow: inset 3px 0 0 #C99BB4;
+    }
+
+    .hour-row.focus .hour-label {
+      color: #C99BB4;
+      font-weight: 700;
+    }
+
+    .hour-row.focus .hour-textarea {
+      font-weight: 600;
+    }
+
+    .hour-row.focus.past:not(.matched) .hour-textarea {
+      color: #C2544F;
+    }
+
     @media (max-width: 768px) {
       body {
         padding: 1rem 0.5rem;
@@ -479,13 +565,27 @@
     </div>
 
     <div class="progress-section">
-      <div class="progress-header">
-        <span class="progress-label">오늘의 실행률</span>
-        <span class="progress-count" id="progressCount">0 / 0 (0%)</span>
+      <div class="progress-block">
+        <div class="progress-header">
+          <span class="progress-label">핵심 실행률</span>
+          <span class="progress-count" id="focusCount">0 / 0 (0%)</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="focusFill"></div>
+        </div>
       </div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill"></div>
+
+      <div class="progress-block">
+        <div class="progress-header">
+          <span class="progress-label sub">전체 실행률</span>
+          <span class="progress-count" id="progressCount">0 / 0 (0%)</span>
+        </div>
+        <div class="progress-bar sub">
+          <div class="progress-fill sub" id="progressFill"></div>
+        </div>
       </div>
+
+      <div class="week-strip" id="weekStrip"></div>
     </div>
 
     <div class="main">
@@ -592,6 +692,15 @@
               } catch (e) {
                 // 파싱 실패 시 무시
               }
+            } else if (type === 'focus') {
+              try {
+                const parsed = JSON.parse(content);
+                if (parsed && typeof parsed === 'object') {
+                  localStorage.setItem('aurora-focus-' + date, JSON.stringify(parsed));
+                }
+              } catch (e) {
+                // 파싱 실패 시 무시
+              }
             }
           });
 
@@ -620,6 +729,7 @@
       const now = new Date();
       const currentHour = now.getHours();
       const isToday = dateStr === today;
+      const focusData = getFocus(dateStr);
 
       for (let h = 6; h < 24; h++) {
         const hourStr = String(h).padStart(2, '0');
@@ -627,10 +737,10 @@
 
         // PLAN
         const planRow = document.createElement('div');
-        planRow.className = 'hour-row' + (isPast ? ' past' : '');
+        planRow.className = 'hour-row' + (isPast ? ' past' : '') + (focusData[h] ? ' focus' : '');
         planRow.dataset.hour = h;
         planRow.innerHTML = `
-          <div class="hour-label">${hourStr}</div>
+          <div class="hour-label clickable" title="클릭하면 핵심 항목으로 지정/해제">${hourStr}</div>
           <div class="hour-content">
             <textarea class="hour-textarea plan-textarea" data-hour="${h}"></textarea>
             <button class="match-btn" data-hour="${h}" title="매칭">✓</button>
@@ -650,13 +760,14 @@
 
         planRow.querySelector('.match-btn').addEventListener('click', () => toggleMatch(dateStr, h));
         planRow.querySelector('.copy-btn').addEventListener('click', () => copyToActual(h, data));
+        planRow.querySelector('.hour-label').addEventListener('click', () => toggleFocus(dateStr, h));
 
         // ACTUAL
         const actualRow = document.createElement('div');
-        actualRow.className = 'hour-row' + (isPast ? ' past' : '');
+        actualRow.className = 'hour-row' + (isPast ? ' past' : '') + (focusData[h] ? ' focus' : '');
         actualRow.dataset.hour = h;
         actualRow.innerHTML = `
-          <div class="hour-label">${hourStr}</div>
+          <div class="hour-label clickable" title="클릭하면 핵심 항목으로 지정/해제">${hourStr}</div>
           <div class="hour-content">
             <textarea class="hour-textarea actual-textarea" data-hour="${h}"></textarea>
             <button class="match-btn" data-hour="${h}" title="매칭">✓</button>
@@ -674,6 +785,7 @@
         });
 
         actualRow.querySelector('.match-btn').addEventListener('click', () => toggleMatch(dateStr, h));
+        actualRow.querySelector('.hour-label').addEventListener('click', () => toggleFocus(dateStr, h));
 
         updateMatching(dateStr, h);
       }
@@ -684,32 +796,94 @@
       updateProgress();
     }
 
-    function updateProgress() {
-      const dateStr = document.getElementById('dateInput').value;
+    function getFocus(dateStr) {
+      try {
+        return JSON.parse(localStorage.getItem('aurora-focus-' + dateStr) || '{}');
+      } catch (e) {
+        return {};
+      }
+    }
+
+    function toggleFocus(dateStr, hour) {
+      const focus = getFocus(dateStr);
+      if (focus[hour]) delete focus[hour];
+      else focus[hour] = true;
+      localStorage.setItem('aurora-focus-' + dateStr, JSON.stringify(focus));
+      syncToSheet(dateStr, 'focus', '', JSON.stringify(focus));
+      renderPage();
+    }
+
+    // 특정 날짜의 집계: {focusDone, focusTotal, allDone, allTotal}
+    function computeStats(dateStr) {
       const saved = localStorage.getItem('aurora-' + dateStr);
       const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
       const matched = localStorage.getItem('aurora-matched-' + dateStr);
       const matchedData = matched ? JSON.parse(matched) : {};
+      const focus = getFocus(dateStr);
 
-      let planned = 0;
-      let done = 0;
+      let focusDone = 0, focusTotal = 0, allDone = 0, allTotal = 0;
 
       for (let h = 6; h < 24; h++) {
         const planValue = (data.plan[h] || '').trim();
         if (planValue === '') continue;
 
-        planned++;
-
         const actualValue = (data.actual[h] || '').trim();
-        const isAutoMatch = planValue === actualValue;
-        const isManualMatch = matchedData[h] === true;
+        const isDone = (planValue === actualValue) || matchedData[h] === true;
 
-        if (isAutoMatch || isManualMatch) done++;
+        allTotal++;
+        if (isDone) allDone++;
+
+        if (focus[h]) {
+          focusTotal++;
+          if (isDone) focusDone++;
+        }
       }
 
-      const percent = planned === 0 ? 0 : Math.round((done / planned) * 100);
-      document.getElementById('progressCount').textContent = `${done} / ${planned} (${percent}%)`;
-      document.getElementById('progressFill').style.width = percent + '%';
+      return { focusDone, focusTotal, allDone, allTotal };
+    }
+
+    function updateProgress() {
+      const dateStr = document.getElementById('dateInput').value;
+      const s = computeStats(dateStr);
+
+      const focusPct = s.focusTotal === 0 ? 0 : Math.round((s.focusDone / s.focusTotal) * 100);
+      document.getElementById('focusCount').textContent =
+        s.focusTotal === 0 ? '핵심 항목 없음' : `${s.focusDone} / ${s.focusTotal} (${focusPct}%)`;
+      document.getElementById('focusFill').style.width = focusPct + '%';
+
+      const allPct = s.allTotal === 0 ? 0 : Math.round((s.allDone / s.allTotal) * 100);
+      document.getElementById('progressCount').textContent = `${s.allDone} / ${s.allTotal} (${allPct}%)`;
+      document.getElementById('progressFill').style.width = allPct + '%';
+
+      renderWeekStrip(dateStr);
+    }
+
+    function renderWeekStrip(dateStr) {
+      const strip = document.getElementById('weekStrip');
+      strip.innerHTML = '';
+
+      const base = new Date(dateStr + 'T00:00:00');
+      const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+      for (let i = 6; i >= 0; i--) {
+        const d = new Date(base);
+        d.setDate(d.getDate() - i);
+        const ds = d.toISOString().split('T')[0];
+        const s = computeStats(ds);
+        const pct = s.focusTotal === 0 ? 0 : Math.round((s.focusDone / s.focusTotal) * 100);
+
+        const div = document.createElement('div');
+        div.className = 'week-day' + (ds === dateStr ? ' is-today' : '');
+        div.title = `${ds} · 핵심 ${s.focusDone}/${s.focusTotal}`;
+        div.innerHTML = `
+          <div class="week-day-bar">
+            <div class="week-day-fill" style="height:${pct}%"></div>
+          </div>
+          <div class="week-day-label">${dayNames[d.getDay()]}</div>
+        `;
+        div.addEventListener('click', () => goToDate(ds));
+        strip.appendChild(div);
+      }
     }
 
     function updateMatching(dateStr, hour) {
@@ -845,13 +1019,20 @@
       const memo = localStorage.getItem('aurora-memo-' + dateStr);
       if (memo && memo.trim()) { syncToSheet(dateStr, 'memo', '', memo); count++; }
 
-      // 이 기기에 있는 모든 날짜의 체크리스트를 올림
+      // 이 기기에 있는 모든 날짜의 체크리스트와 핵심 지정을 올림
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (!key || !key.startsWith('aurora-checklist-')) continue;
-        const keyDate = key.replace('aurora-checklist-', '');
-        const items = localStorage.getItem(key);
-        if (items && items !== '[]') { syncToSheet(keyDate, 'checklist', '', items); count++; }
+        if (!key) continue;
+
+        if (key.startsWith('aurora-checklist-')) {
+          const keyDate = key.replace('aurora-checklist-', '');
+          const items = localStorage.getItem(key);
+          if (items && items !== '[]') { syncToSheet(keyDate, 'checklist', '', items); count++; }
+        } else if (key.startsWith('aurora-focus-')) {
+          const keyDate = key.replace('aurora-focus-', '');
+          const items = localStorage.getItem(key);
+          if (items && items !== '{}') { syncToSheet(keyDate, 'focus', '', items); count++; }
+        }
       }
 
       alert(count + '건을 시트로 올렸습니다. 잠시 후 다른 기기에서 새로고침하세요.');
