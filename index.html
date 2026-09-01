@@ -121,6 +121,30 @@
       color: #B05450;
     }
 
+    .template-status {
+      margin-top: 0.9rem;
+      padding-top: 0.8rem;
+      border-top: 1px solid #F0EAE5;
+      font-size: 11px;
+      color: #8B7B78;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .tpl-chip {
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: #F5F0EB;
+      color: #B8A9A5;
+    }
+
+    .tpl-chip.has {
+      background: #F3E7EE;
+      color: #8A5A75;
+      font-weight: 600;
+    }
+
     .progress-section {
       max-width: 1200px;
       margin: 0 auto 1.5rem;
@@ -709,6 +733,7 @@
         <button id="nextBtn">내일 →</button>
         <button id="syncBtn" title="이 기기의 오늘 데이터를 시트로 올리고 다시 불러옵니다">↻ 동기화</button>
         <button id="templateBtn" title="요일별 반복 일정 관리">템플릿</button>
+        <button id="resetBtn" title="이 기기에 저장된 내용을 지우고 시트 내용만 다시 받습니다">시트에서 다시 받기</button>
       </div>
     </div>
 
@@ -716,10 +741,13 @@
       <div class="template-title" id="templateTitle">템플릿</div>
       <div class="template-desc" id="templateDesc"></div>
       <div class="template-actions">
-        <button id="tplSave">이 날의 계획을 템플릿으로 저장</button>
+        <button id="tplSave">이 요일에만 저장</button>
+        <button id="tplSaveWeekday">평일(월~금) 전체에 저장</button>
+        <button id="tplSaveWeekend">주말(토·일)에 저장</button>
         <button id="tplApply">템플릿 불러오기</button>
-        <button id="tplDelete" class="danger">템플릿 삭제</button>
+        <button id="tplDelete" class="danger">이 요일 템플릿 삭제</button>
       </div>
+      <div class="template-status" id="templateStatus"></div>
     </div>
 
     <div class="progress-section">
@@ -1338,9 +1366,10 @@
       carried.forEach(({ item, sourceDate, sourceKey }) => {
         const div = document.createElement('div');
         div.className = 'checklist-item' + (type === 'long' ? ' long' : '');
+        const badge = type === 'long' ? '' : `<span class="carryover-badge">${sourceDate.slice(5)}</span>`;
         div.innerHTML = `
           <input type="checkbox">
-          <span><span class="carryover-badge">${sourceDate.slice(5)}</span>${item.text}</span>
+          <span>${badge}${item.text}</span>
           <button class="delete-btn">×</button>
         `;
 
@@ -1456,32 +1485,8 @@
       return applied;
     }
 
-    function refreshTemplatePanel() {
-      const dateStr = document.getElementById('dateInput').value;
-      const dow = getDow(dateStr);
-      const tpl = getTemplate(dow);
-
-      document.getElementById('templateTitle').textContent = DOW_NAMES[dow] + ' 템플릿';
-
-      if (tpl) {
-        const count = Object.keys(tpl.plan).filter(h => (tpl.plan[h] || '').trim() !== '').length;
-        document.getElementById('templateDesc').textContent =
-          `현재 ${count}개 시간이 저장되어 있습니다. 계획이 비어 있는 ${DOW_NAMES[dow]}을 열면 자동으로 채워집니다.`;
-      } else {
-        document.getElementById('templateDesc').textContent =
-          `아직 저장된 템플릿이 없습니다. 매주 ${DOW_NAMES[dow]}마다 반복되는 일정을 이 날에 적어두고 저장하세요.`;
-      }
-    }
-
-    document.getElementById('templateBtn').addEventListener('click', () => {
-      const panel = document.getElementById('templatePanel');
-      panel.classList.toggle('open');
-      if (panel.classList.contains('open')) refreshTemplatePanel();
-    });
-
-    document.getElementById('tplSave').addEventListener('click', () => {
-      const dateStr = document.getElementById('dateInput').value;
-      const dow = getDow(dateStr);
+    // 특정 날짜의 계획을 템플릿 형태로 추출
+    function buildTemplateFrom(dateStr) {
       const saved = localStorage.getItem('aurora-' + dateStr);
       const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
       const focus = getFocus(dateStr);
@@ -1497,16 +1502,72 @@
         count++;
       }
 
+      return { tpl, count };
+    }
+
+    function saveTemplateToDows(dows, groupLabel) {
+      const dateStr = document.getElementById('dateInput').value;
+      const { tpl, count } = buildTemplateFrom(dateStr);
+
       if (count === 0) {
         alert('이 날에 저장할 계획이 없습니다.');
         return;
       }
 
-      if (!confirm(`${DOW_NAMES[dow]} 템플릿으로 ${count}개 시간을 저장할까요?\n기존 템플릿은 덮어씁니다.`)) return;
+      if (!confirm(`${groupLabel} 템플릿으로 ${count}개 시간을 저장할까요?\n해당 요일의 기존 템플릿은 덮어씁니다.`)) return;
 
-      saveTemplate(dow, tpl);
+      dows.forEach(d => saveTemplate(d, tpl));
       refreshTemplatePanel();
-      alert(`${DOW_NAMES[dow]} 템플릿을 저장했습니다.`);
+      alert(`${groupLabel} 템플릿을 저장했습니다.`);
+    }
+
+    function refreshTemplatePanel() {
+      const dateStr = document.getElementById('dateInput').value;
+      const dow = getDow(dateStr);
+      const tpl = getTemplate(dow);
+
+      document.getElementById('templateTitle').textContent = DOW_NAMES[dow] + ' 템플릿';
+
+      if (tpl) {
+        const count = Object.keys(tpl.plan).filter(h => (tpl.plan[h] || '').trim() !== '').length;
+        document.getElementById('templateDesc').textContent =
+          `현재 ${count}개 시간이 저장되어 있습니다. 계획이 비어 있는 ${DOW_NAMES[dow]}을 열면 자동으로 채워집니다.`;
+      } else {
+        document.getElementById('templateDesc').textContent =
+          `아직 저장된 템플릿이 없습니다. 매주 ${DOW_NAMES[dow]}마다 반복되는 일정을 이 날에 적어두고 저장하세요.`;
+      }
+
+      // 요일별 저장 현황
+      const status = document.getElementById('templateStatus');
+      status.innerHTML = '';
+      const shortNames = ['일', '월', '화', '수', '목', '금', '토'];
+      [1, 2, 3, 4, 5, 6, 0].forEach(d => {
+        const t = getTemplate(d);
+        const chip = document.createElement('span');
+        chip.className = 'tpl-chip' + (t ? ' has' : '');
+        const n = t ? Object.keys(t.plan).length : 0;
+        chip.textContent = t ? `${shortNames[d]} ${n}` : shortNames[d];
+        status.appendChild(chip);
+      });
+    }
+
+    document.getElementById('templateBtn').addEventListener('click', () => {
+      const panel = document.getElementById('templatePanel');
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) refreshTemplatePanel();
+    });
+
+    document.getElementById('tplSave').addEventListener('click', () => {
+      const dow = getDow(document.getElementById('dateInput').value);
+      saveTemplateToDows([dow], DOW_NAMES[dow]);
+    });
+
+    document.getElementById('tplSaveWeekday').addEventListener('click', () => {
+      saveTemplateToDows([1, 2, 3, 4, 5], '평일(월~금)');
+    });
+
+    document.getElementById('tplSaveWeekend').addEventListener('click', () => {
+      saveTemplateToDows([6, 0], '주말(토·일)');
     });
 
     document.getElementById('tplApply').addEventListener('click', () => {
@@ -1542,6 +1603,26 @@
       localStorage.removeItem('aurora-template-' + dow);
       syncToSheet('template-' + dow, 'template', '', '');
       refreshTemplatePanel();
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      if (!confirm(
+        '이 기기에 저장된 플래너 데이터를 모두 지우고,\n' +
+        '구글 시트에 있는 내용만 다시 받아옵니다.\n\n' +
+        '시트에 아직 올라가지 않은 내용은 사라집니다.\n' +
+        '먼저 ↻ 동기화를 눌러두는 것을 권합니다.\n\n' +
+        '진행할까요?'
+      )) return;
+
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('aurora-')) keys.push(k);
+      }
+      keys.forEach(k => localStorage.removeItem(k));
+
+      loadAllData();
+      alert('시트 내용으로 다시 받았습니다.');
     });
 
     // 초기화
