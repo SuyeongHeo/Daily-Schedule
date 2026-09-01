@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Aurora Daily Planner</title>
+  <title>Daily Planner</title>
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23F9F7F4' rx='20'/><rect x='15' y='15' width='70' height='70' fill='none' stroke='%23D4B5C4' stroke-width='2' rx='8'/><line x1='30' y1='35' x2='70' y2='35' stroke='%23D4B5C4' stroke-width='2'/><line x1='30' y1='50' x2='70' y2='50' stroke='%23D4B5C4' stroke-width='2'/><line x1='30' y1='65' x2='70' y2='65' stroke='%23D4B5C4' stroke-width='2'/></svg>">
   <style>
     * {
@@ -63,6 +63,62 @@
       border: 1px solid #D4B5C4;
       border-radius: 4px;
       font-size: 14px;
+    }
+
+    .template-panel {
+      max-width: 1200px;
+      margin: 0 auto 1.5rem;
+      background: white;
+      border-radius: 6px;
+      padding: 1rem 1.5rem;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      display: none;
+    }
+
+    .template-panel.open {
+      display: block;
+    }
+
+    .template-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4A4240;
+      margin-bottom: 0.4rem;
+    }
+
+    .template-desc {
+      font-size: 11px;
+      color: #8B7B78;
+      line-height: 1.6;
+      margin-bottom: 0.9rem;
+    }
+
+    .template-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .template-actions button {
+      padding: 7px 12px;
+      border: 1px solid #E0D2DA;
+      background: white;
+      color: #6B5F5C;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-family: inherit;
+    }
+
+    .template-actions button:hover {
+      background: #FAF6F8;
+      border-color: #C99BB4;
+      color: #4A4240;
+    }
+
+    .template-actions button.danger:hover {
+      border-color: #D9A3A0;
+      color: #B05450;
     }
 
     .progress-section {
@@ -235,6 +291,54 @@
       border-radius: 3px;
       cursor: pointer;
       font-size: 14px;
+    }
+
+    .type-toggle {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 0.6rem;
+    }
+
+    .type-toggle button {
+      flex: 1;
+      padding: 5px 0;
+      font-size: 11px;
+      font-family: inherit;
+      border: 1px solid #E8DFD9;
+      background: white;
+      color: #8B7B78;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    .type-toggle button.active {
+      background: #F3E7EE;
+      border-color: #C99BB4;
+      color: #8A5A75;
+      font-weight: 600;
+    }
+
+    .list-group {
+      margin-bottom: 1rem;
+    }
+
+    .list-group-title {
+      font-size: 10px;
+      color: #B8A9A5;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.4rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .list-empty {
+      font-size: 11px;
+      color: #C9BDB9;
+      padding: 0.3rem 0 0.6rem;
+    }
+
+    .checklist-item.long {
+      background: #F1F0F5;
     }
 
     .checklist-list {
@@ -435,21 +539,64 @@
       user-select: none;
     }
 
+    /* 핵심 항목 - 기본(아직 실행 전): 앰버 강조 */
     .hour-row.focus {
-      box-shadow: inset 3px 0 0 #C99BB4;
+      background: #FDF6EA;
+      box-shadow: inset 4px 0 0 #D9A441;
     }
 
     .hour-row.focus .hour-label {
-      color: #C99BB4;
+      background: #F6E8CC;
+      color: #A9752A;
       font-weight: 700;
     }
 
     .hour-row.focus .hour-textarea {
       font-weight: 600;
+      color: #6B4E1E;
+      background: transparent;
+    }
+
+    /* 핵심 항목 - 실행 완료: 초록 */
+    .hour-row.focus.matched {
+      background: #EEF5EA;
+      box-shadow: inset 4px 0 0 #77A05B;
+    }
+
+    .hour-row.focus.matched .hour-label {
+      background: #E1EDD9;
+      color: #4F7038;
+    }
+
+    .hour-row.focus.matched .hour-textarea {
+      color: #3F5C2C;
+      background: transparent;
+    }
+
+    .hour-row.focus.matched .match-btn.active {
+      color: #77A05B;
+    }
+
+    /* 핵심 항목 - 시간이 지났는데 미실행: 붉은 경고 */
+    .hour-row.focus.past:not(.matched) {
+      background: #FBEDEC;
+      box-shadow: inset 4px 0 0 #C2544F;
+    }
+
+    .hour-row.focus.past:not(.matched) .hour-label {
+      background: #F5DAD8;
+      color: #A8403C;
     }
 
     .hour-row.focus.past:not(.matched) .hour-textarea {
-      color: #C2544F;
+      color: #A8403C;
+      background: transparent;
+    }
+
+    /* 핵심 항목 - 현재 시간 */
+    .hour-row.focus.current .hour-label {
+      background: #D9A441;
+      color: white;
     }
 
     @media (max-width: 768px) {
@@ -554,13 +701,24 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>Aurora Daily Planner</h1>
+      <h1>Daily Planner</h1>
       <div class="date-controls">
         <button id="prevBtn">← 어제</button>
         <input type="date" id="dateInput">
         <button id="todayBtn">오늘</button>
         <button id="nextBtn">내일 →</button>
         <button id="syncBtn" title="이 기기의 오늘 데이터를 시트로 올리고 다시 불러옵니다">↻ 동기화</button>
+        <button id="templateBtn" title="요일별 반복 일정 관리">템플릿</button>
+      </div>
+    </div>
+
+    <div class="template-panel" id="templatePanel">
+      <div class="template-title" id="templateTitle">템플릿</div>
+      <div class="template-desc" id="templateDesc"></div>
+      <div class="template-actions">
+        <button id="tplSave">이 날의 계획을 템플릿으로 저장</button>
+        <button id="tplApply">템플릿 불러오기</button>
+        <button id="tplDelete" class="danger">템플릿 삭제</button>
       </div>
     </div>
 
@@ -592,6 +750,10 @@
       <!-- 왼쪽 사이드바 -->
       <div class="sidebar">
         <div class="section-title">체크리스트</div>
+        <div class="type-toggle">
+          <button id="typeShort" class="active" data-type="short">단기</button>
+          <button id="typeLong" data-type="long">장기</button>
+        </div>
         <div class="checklist-input">
           <input type="text" id="checklistInput" placeholder="추가하기">
           <button id="addChecklistBtn">+</button>
@@ -701,6 +863,20 @@
               } catch (e) {
                 // 파싱 실패 시 무시
               }
+            } else if (type === 'template' && date.startsWith('template-')) {
+              const dow = date.replace('template-', '');
+              if (content.trim() === '') {
+                localStorage.removeItem('aurora-template-' + dow);
+              } else {
+                try {
+                  const parsed = JSON.parse(content);
+                  if (parsed && parsed.plan) {
+                    localStorage.setItem('aurora-template-' + dow, JSON.stringify(parsed));
+                  }
+                } catch (e) {
+                  // 파싱 실패 시 무시
+                }
+              }
             }
           });
 
@@ -717,6 +893,12 @@
 
     function renderPage() {
       const dateStr = document.getElementById('dateInput').value;
+
+      // 오늘 이후 날짜이고 계획이 완전히 비어 있으면 요일 템플릿 자동 적용
+      if (dateStr >= today && isPlanEmpty(dateStr) && getTemplate(getDow(dateStr))) {
+        applyTemplate(dateStr, false);
+      }
+
       const saved = localStorage.getItem('aurora-' + dateStr);
       const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
 
@@ -729,6 +911,7 @@
       const now = new Date();
       const currentHour = now.getHours();
       const isToday = dateStr === today;
+
       const focusData = getFocus(dateStr);
 
       for (let h = 6; h < 24; h++) {
@@ -863,11 +1046,18 @@
       strip.innerHTML = '';
 
       const base = new Date(dateStr + 'T00:00:00');
-      const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-      for (let i = 6; i >= 0; i--) {
-        const d = new Date(base);
-        d.setDate(d.getDate() - i);
+      // 이 날짜가 속한 주의 월요일 구하기 (일요일은 저번 주 월요일 기준)
+      const dow = base.getDay();
+      const offsetToMonday = dow === 0 ? -6 : 1 - dow;
+      const monday = new Date(base);
+      monday.setDate(monday.getDate() + offsetToMonday);
+
+      const labels = ['월', '화', '수', '목', '금', '토', '일'];
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(d.getDate() + i);
         const ds = d.toISOString().split('T')[0];
         const s = computeStats(ds);
         const pct = s.focusTotal === 0 ? 0 : Math.round((s.focusDone / s.focusTotal) * 100);
@@ -879,7 +1069,7 @@
           <div class="week-day-bar">
             <div class="week-day-fill" style="height:${pct}%"></div>
           </div>
-          <div class="week-day-label">${dayNames[d.getDay()]}</div>
+          <div class="week-day-label">${labels[i]}</div>
         `;
         div.addEventListener('click', () => goToDate(ds));
         strip.appendChild(div);
@@ -971,6 +1161,7 @@
       document.getElementById('dateInput').value = dateStr;
       renderPage();
       renderChecklist();
+      if (document.getElementById('templatePanel').classList.contains('open')) refreshTemplatePanel();
     }
 
     document.getElementById('prevBtn').addEventListener('click', () => {
@@ -1032,6 +1223,10 @@
           const keyDate = key.replace('aurora-focus-', '');
           const items = localStorage.getItem(key);
           if (items && items !== '{}') { syncToSheet(keyDate, 'focus', '', items); count++; }
+        } else if (key.startsWith('aurora-template-')) {
+          const dow = key.replace('aurora-template-', '');
+          const items = localStorage.getItem(key);
+          if (items) { syncToSheet('template-' + dow, 'template', '', items); count++; }
         }
       }
 
@@ -1039,21 +1234,41 @@
     });
 
     // 체크리스트
-    document.getElementById('addChecklistBtn').addEventListener('click', () => {
+    function addChecklistItem() {
       const input = document.getElementById('checklistInput');
       if (!input.value.trim()) return;
-      
+
       const dateStr = document.getElementById('dateInput').value;
       const checklists = JSON.parse(localStorage.getItem('aurora-checklist-' + dateStr) || '[]');
-      checklists.push({ id: Date.now(), text: input.value, checked: false });
+      checklists.push({ id: Date.now(), text: input.value.trim(), checked: false, type: currentType });
       saveChecklist(dateStr, checklists);
       input.value = '';
       renderChecklist();
+    }
+
+    document.getElementById('addChecklistBtn').addEventListener('click', addChecklistItem);
+    document.getElementById('checklistInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addChecklistItem();
     });
 
     function saveChecklist(dateStr, items) {
       localStorage.setItem('aurora-checklist-' + dateStr, JSON.stringify(items));
       syncToSheet(dateStr, 'checklist', '', JSON.stringify(items));
+    }
+
+    let currentType = 'short';
+
+    document.querySelectorAll('.type-toggle button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentType = btn.dataset.type;
+        document.querySelectorAll('.type-toggle button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('checklistInput').focus();
+      });
+    });
+
+    function itemType(item) {
+      return item.type === 'long' ? 'long' : 'short';
     }
 
     function renderChecklist() {
@@ -1092,10 +1307,37 @@
       const list = document.getElementById('checklistList');
       list.innerHTML = '';
 
-      // 이월 항목 먼저 표시
-      carryovers.forEach(({ item, sourceDate, sourceKey }) => {
+      renderGroup(list, 'short', '단기', checklists, carryovers, dateStr, checklistKey);
+      renderGroup(list, 'long', '장기', checklists, carryovers, dateStr, checklistKey);
+    }
+
+    function renderGroup(list, type, label, checklists, carryovers, dateStr, checklistKey) {
+      const mine = checklists.filter(c => itemType(c) === type);
+      const carried = carryovers.filter(c => itemType(c.item) === type);
+      const total = mine.length + carried.length;
+      const doneCount = mine.filter(c => c.checked).length;
+
+      const group = document.createElement('div');
+      group.className = 'list-group';
+
+      const title = document.createElement('div');
+      title.className = 'list-group-title';
+      title.innerHTML = `<span>${label}</span><span>${doneCount}/${total}</span>`;
+      group.appendChild(title);
+
+      if (total === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'list-empty';
+        empty.textContent = '없음';
+        group.appendChild(empty);
+        list.appendChild(group);
+        return;
+      }
+
+      // 이월 항목 먼저
+      carried.forEach(({ item, sourceDate, sourceKey }) => {
         const div = document.createElement('div');
-        div.className = 'checklist-item';
+        div.className = 'checklist-item' + (type === 'long' ? ' long' : '');
         div.innerHTML = `
           <input type="checkbox">
           <span><span class="carryover-badge">${sourceDate.slice(5)}</span>${item.text}</span>
@@ -1122,13 +1364,13 @@
           renderChecklist();
         });
 
-        list.appendChild(div);
+        group.appendChild(div);
       });
 
-      // 오늘 항목
-      checklists.forEach(item => {
+      // 이 날 항목
+      mine.forEach(item => {
         const div = document.createElement('div');
-        div.className = 'checklist-item' + (item.checked ? ' done' : '');
+        div.className = 'checklist-item' + (type === 'long' ? ' long' : '') + (item.checked ? ' done' : '');
         div.innerHTML = `
           <input type="checkbox" ${item.checked ? 'checked' : ''}>
           <span>${item.text}</span>
@@ -1147,9 +1389,160 @@
           renderChecklist();
         });
 
-        list.appendChild(div);
+        group.appendChild(div);
       });
+
+      list.appendChild(group);
     }
+
+    const DOW_NAMES = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+
+    function getDow(dateStr) {
+      return new Date(dateStr + 'T00:00:00').getDay();
+    }
+
+    function getTemplate(dow) {
+      try {
+        const t = JSON.parse(localStorage.getItem('aurora-template-' + dow) || 'null');
+        if (t && t.plan) return t;
+      } catch (e) {}
+      return null;
+    }
+
+    function saveTemplate(dow, tpl) {
+      localStorage.setItem('aurora-template-' + dow, JSON.stringify(tpl));
+      syncToSheet('template-' + dow, 'template', '', JSON.stringify(tpl));
+    }
+
+    function isPlanEmpty(dateStr) {
+      const saved = localStorage.getItem('aurora-' + dateStr);
+      if (!saved) return true;
+      const data = JSON.parse(saved);
+      for (let h = 6; h < 24; h++) {
+        if ((data.plan[h] || '').trim() !== '') return false;
+      }
+      return true;
+    }
+
+    // 템플릿을 해당 날짜에 적용. overwrite=false면 이미 내용이 있는 칸은 건드리지 않음
+    function applyTemplate(dateStr, overwrite) {
+      const tpl = getTemplate(getDow(dateStr));
+      if (!tpl) return 0;
+
+      const saved = localStorage.getItem('aurora-' + dateStr);
+      const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
+      const focus = getFocus(dateStr);
+
+      let applied = 0;
+
+      for (let h = 6; h < 24; h++) {
+        const text = (tpl.plan[h] || '').trim();
+        if (text === '') continue;
+        if (!overwrite && (data.plan[h] || '').trim() !== '') continue;
+
+        data.plan[h] = tpl.plan[h];
+        syncToSheet(dateStr, 'plan', h, tpl.plan[h]);
+        applied++;
+
+        if (tpl.focus && tpl.focus[h]) focus[h] = true;
+      }
+
+      if (applied > 0) {
+        localStorage.setItem('aurora-' + dateStr, JSON.stringify(data));
+        localStorage.setItem('aurora-focus-' + dateStr, JSON.stringify(focus));
+        syncToSheet(dateStr, 'focus', '', JSON.stringify(focus));
+      }
+
+      return applied;
+    }
+
+    function refreshTemplatePanel() {
+      const dateStr = document.getElementById('dateInput').value;
+      const dow = getDow(dateStr);
+      const tpl = getTemplate(dow);
+
+      document.getElementById('templateTitle').textContent = DOW_NAMES[dow] + ' 템플릿';
+
+      if (tpl) {
+        const count = Object.keys(tpl.plan).filter(h => (tpl.plan[h] || '').trim() !== '').length;
+        document.getElementById('templateDesc').textContent =
+          `현재 ${count}개 시간이 저장되어 있습니다. 계획이 비어 있는 ${DOW_NAMES[dow]}을 열면 자동으로 채워집니다.`;
+      } else {
+        document.getElementById('templateDesc').textContent =
+          `아직 저장된 템플릿이 없습니다. 매주 ${DOW_NAMES[dow]}마다 반복되는 일정을 이 날에 적어두고 저장하세요.`;
+      }
+    }
+
+    document.getElementById('templateBtn').addEventListener('click', () => {
+      const panel = document.getElementById('templatePanel');
+      panel.classList.toggle('open');
+      if (panel.classList.contains('open')) refreshTemplatePanel();
+    });
+
+    document.getElementById('tplSave').addEventListener('click', () => {
+      const dateStr = document.getElementById('dateInput').value;
+      const dow = getDow(dateStr);
+      const saved = localStorage.getItem('aurora-' + dateStr);
+      const data = saved ? JSON.parse(saved) : { plan: {}, actual: {} };
+      const focus = getFocus(dateStr);
+
+      const tpl = { plan: {}, focus: {} };
+      let count = 0;
+
+      for (let h = 6; h < 24; h++) {
+        const text = (data.plan[h] || '').trim();
+        if (text === '') continue;
+        tpl.plan[h] = data.plan[h];
+        if (focus[h]) tpl.focus[h] = true;
+        count++;
+      }
+
+      if (count === 0) {
+        alert('이 날에 저장할 계획이 없습니다.');
+        return;
+      }
+
+      if (!confirm(`${DOW_NAMES[dow]} 템플릿으로 ${count}개 시간을 저장할까요?\n기존 템플릿은 덮어씁니다.`)) return;
+
+      saveTemplate(dow, tpl);
+      refreshTemplatePanel();
+      alert(`${DOW_NAMES[dow]} 템플릿을 저장했습니다.`);
+    });
+
+    document.getElementById('tplApply').addEventListener('click', () => {
+      const dateStr = document.getElementById('dateInput').value;
+      const dow = getDow(dateStr);
+
+      if (!getTemplate(dow)) {
+        alert(`${DOW_NAMES[dow]} 템플릿이 없습니다.`);
+        return;
+      }
+
+      const overwrite = confirm(
+        '이미 내용이 있는 칸도 템플릿으로 덮어쓸까요?\n\n' +
+        '확인 = 전부 덮어쓰기\n취소 = 빈 칸만 채우기'
+      );
+
+      const applied = applyTemplate(dateStr, overwrite);
+      renderPage();
+      alert(applied + '개 시간을 채웠습니다.');
+    });
+
+    document.getElementById('tplDelete').addEventListener('click', () => {
+      const dateStr = document.getElementById('dateInput').value;
+      const dow = getDow(dateStr);
+
+      if (!getTemplate(dow)) {
+        alert(`${DOW_NAMES[dow]} 템플릿이 없습니다.`);
+        return;
+      }
+
+      if (!confirm(`${DOW_NAMES[dow]} 템플릿을 삭제할까요?`)) return;
+
+      localStorage.removeItem('aurora-template-' + dow);
+      syncToSheet('template-' + dow, 'template', '', '');
+      refreshTemplatePanel();
+    });
 
     // 초기화
     loadAllData();
